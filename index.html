@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YM 优选 IP · 全球优选清单自选</title>
-<meta name="description" content="Cloudflare 全球优选 IP 聚合站：60+ 地区自选、本地可用检测、延迟速度门槛、订阅链接实时更新，定时自动聚合。">
+<meta name="description" content="Cloudflare 全球优选 IP 聚合站：60+ 源标注地区自选、本地可用检测、延迟速度门槛、订阅链接实时更新，定时自动聚合。">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌐</text></svg>">
 <style>
 :root{
@@ -37,6 +37,7 @@ html{scroll-behavior:smooth}
 .card h3 .chev{float:right;color:var(--dim);font-size:13px;transition:transform .2s;margin-left:8px}
 .card.closed h3 .chev{transform:rotate(-90deg)}
 .card.closed .cardbody{display:none}
+.loc-off{display:none !important}
 .scrollbox{overflow-y:auto;overscroll-behavior:contain}
 .tblwrap.scrollbox thead th{position:sticky;top:0;background:var(--panel2);z-index:2}
 #biglist .brow{display:flex;justify-content:space-between;gap:10px;padding:4px 2px;border-bottom:1px solid var(--line);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
@@ -85,6 +86,7 @@ tr:hover td{background:#13223c}
 .addr:hover{color:var(--acc2)}
 .medal{font-size:15px}
 .region{display:inline-block;background:#1b3455;color:#9ecbff;border-radius:6px;padding:1px 7px;font-size:12px}
+.loc{display:inline-block;background:#14301d;color:#7ee2a0;border-radius:6px;padding:1px 7px;font-size:12px}
 .tag{color:var(--dim);font-size:12.5px}
 .lat{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
 .lat.good{color:var(--ok)} .lat.mid{color:var(--warn)} .lat.bad{color:var(--bad)}
@@ -116,7 +118,7 @@ footer a{color:var(--acc2);text-decoration:none}
 <div class="wrap">
 <header>
   <h1><span class="brand">YM</span> 优选 IP</h1>
-  <div class="sub">Cloudflare 全球优选清单 · 选地区、定数量、测本地可用、订阅自动更新</div>
+  <div class="sub">Cloudflare 全球优选清单 · 选源标注地区、定数量、测本地可用、订阅自动更新</div>
   <div class="stats" id="stats"></div>
   <div class="vbar" id="visitorbar" style="display:none">
     <span id="vbarText"></span>
@@ -137,14 +139,15 @@ footer a{color:var(--acc2);text-decoration:none}
     <span class="selinfo">直链是固定地址，内容随每次聚合自动更新，可直接当订阅源。</span>
   </div>
   <div class="tblwrap scrollbox" style="max-height:308px"><table>
-    <thead><tr><th>#</th><th>地址（点地址复制整行）</th><th>地区</th><th>源测速</th></tr></thead>
+    <thead><tr><th>#</th><th>地址（点地址复制整行）</th><th>源标注地区</th><th>源测速</th></tr></thead>
     <tbody id="toprows"></tbody>
   </table></div>
   <div class="note" style="margin-top:6px">不知道选哪个先用这批：源站在实测源里下载最快的前 20。速度因地区线路而异，你本地未必同序。</div>
 </div>
 
 <div class="card">
-  <h3>① 选地区（数字是该地区现有条数）</h3>
+  <h3>① 选地区（源标注地区，数字是该地区现有条数）</h3>
+  <div class="note" style="border:1px solid var(--acc);border-radius:10px;padding:9px 12px;margin-bottom:10px">⚠️ <b>先说清「地区」是什么。</b>Cloudflare 的 IP 是全球任播，同一个 IP 在哪落地看你的线路，国内访问多半落地香港/日本/新加坡。这里的地区是源站测速时看到的标注，不等于你用时的落地，想知道自己的真实落地，看下面⑦——本站的「检测地区」就是为这个加的（在③订阅页签，部署时配好才出现），能实测你当前网络下每个 IP 真落哪个机房。</div>
   <div class="presets">
     <button class="pbtn" data-preset="all">全选</button>
     <button class="pbtn" data-preset="none">清空</button>
@@ -163,13 +166,13 @@ footer a{color:var(--acc2);text-decoration:none}
   <div class="rgrid" id="rgrid"></div>
   <div class="ctrl">
     <button class="btn" id="btnScan">🌐 检测本地可用（全池）</button>
-    <button class="btn" id="btnScanSel">只检测已选地区</button>
+    <button class="btn" id="btnScanSel">只检测已选（源标注）</button>
     <button class="btn" id="btnStop" style="display:none">停止检测</button>
-    <button class="btn" id="btnSelAvail" disabled>只选有可用的地区</button>
+    <button class="btn" id="btnSelAvail" disabled>只选有可用的（源标注）</button>
     <span class="selinfo" id="scaninfo"></span>
   </div>
   <div class="ctrl">
-    <label>每个地区最多 <input type="number" id="perN" min="1" placeholder="不限"> 个</label>
+    <label>每个源标注地区最多 <input type="number" id="perN" min="1" placeholder="不限"> 个</label>
     <label><input type="checkbox" id="onlyAvail"> 只生成本地测通的</label>
     <button class="btn primary" id="btnGen">生成清单</button>
     <span class="selinfo" id="selinfo"></span>
@@ -185,20 +188,20 @@ footer a{color:var(--acc2);text-decoration:none}
     </select></label>
     <span class="selinfo">延迟优先用本地实测，没测过用源标注；速度只有实测源带数据。<b>设了门槛后，没对应数据的条目会被滤掉。</b></span>
   </div>
-  <div class="note" style="margin-top:8px">每地区内部按来源质量优先取前 N（高速优选 &gt; 美日精选 &gt; 全国补充 &gt; 全量池）；选中地区后钮里小框可单独定量。运营商筛选：带运营商标注的只留对应运营商，无标注的源（如实测源）不分运营商、照常保留。随机抽取适合分摊使用、避免所有人挤同几个 IP。</div>
+  <div class="note" style="margin-top:8px">每个源标注地区内部按来源质量优先取前 N（高速优选 &gt; 美日精选 &gt; 全国补充 &gt; 全量池）；勾选后钮里小框可单独定量。运营商筛选：带运营商标注的只留对应运营商，无标注的源（如实测源）不分运营商、照常保留。随机抽取适合分摊使用、避免所有人挤同几个 IP。</div>
 </div>
 
 <div class="card">
   <h3>② 你的清单 <span class="tag" id="rescount"></span></h3>
   <div class="toolbar">
-    <input type="search" id="q" placeholder="过滤：输入 IP / 地区 / 关键词…">
+    <input type="search" id="q" placeholder="过滤：输入 IP / 源标注地区 / 关键词…">
     <button class="btn primary" id="btnCopy">复制清单</button>
     <button class="btn" id="btnDl">下载 .txt</button>
     <button class="btn" id="btnTest">⚡ 本地测速（双测取低）</button>
     <button class="btn" id="btnSort" disabled>按延迟排序</button>
     <button class="btn" id="btnRecheck">送复检站</button>
     <label style="margin-left:6px">列表/导出顺序 <select id="ordMode">
-      <option value="region" selected>按地区分组（日本全完→美国…）</option>
+      <option value="region" selected>按源标注地区分组（日本全完→美国…）</option>
       <option value="asis">按当前顺序</option>
     </select></label>
   </div>
@@ -244,7 +247,7 @@ footer a{color:var(--acc2);text-decoration:none}
     <button class="btn" id="fmtClear">清空</button>
   </div>
   <div class="tblwrap scrollbox" style="max-height:52vh"><table>
-    <thead><tr><th>#</th><th>地址（点地址复制整行）</th><th>地区</th><th>类型 / 来源</th><th>本地延迟</th></tr></thead>
+    <thead><tr><th>#</th><th>地址（点地址复制整行）</th><th>源标注地区</th><th>类型 / 来源</th><th>本地延迟</th></tr></thead>
     <tbody id="rows"></tbody>
   </table></div>
   <div class="note" id="testnote" style="margin-top:8px"></div>
@@ -252,7 +255,7 @@ footer a{color:var(--acc2);text-decoration:none}
 
 <div class="card">
   <h3>③ 我的订阅链接（自动更新）</h3>
-  <div class="note">把这条链接填进客户端 / 优选订阅，客户端每次拉取拿到的都是<b>最新聚合数据</b>按你当前选项（地区、数量、门槛、运营商、端口、取数）现算的清单；上面选项一改，链接自动跟着变。链接是<b>短链形式</b>（以 .txt 结尾、不带问号参数：你的选项已存成预设放在服务端，同一套选项永远同一条短链），和别家优选源的 TXT 直链同形，填进哪个订阅后台都一样。「本地可用」是浏览器本地测的、上面的实时链接带不了 — 要把本地测通的结果变成订阅，用下面的<b>快照链接</b>；你的整套选项也可以存成<b>分享链接</b>收藏或发给别人。<b>两种模式怎么选</b>：不测速、想让客户端定时更新就自动换上最新节点的 → 用这条实时链接；自己测速、只想要测通的那批且不许它自己变的 → 用下面的快照链接。</div>
+  <div class="note">把这条链接填进客户端 / 优选订阅，客户端每次拉取拿到的都是<b>最新聚合数据</b>按你当前选项（源标注地区、数量、门槛、运营商、端口、取数）现算的清单；上面选项一改，链接自动跟着变。链接是<b>短链形式</b>（以 .txt 结尾、不带问号参数：你的选项已存成预设放在服务端，同一套选项永远同一条短链），和别家优选源的 TXT 直链同形，填进哪个订阅后台都一样。「本地可用」是浏览器本地测的、上面的实时链接带不了 — 要把本地测通的结果变成订阅，用下面的<b>快照链接</b>；你的整套选项也可以存成<b>分享链接</b>收藏或发给别人。<b>两种模式怎么选</b>：不测速、想让客户端定时更新就自动换上最新节点的 → 用这条实时链接；自己测速、只想要测通的那批且不许它自己变的 → 用下面的快照链接。</div>
   <div class="ctrl">
     <input id="subUrl" readonly>
     <button class="btn primary" id="btnSubCopy">复制订阅链接</button>
@@ -286,6 +289,19 @@ footer a{color:var(--acc2);text-decoration:none}
     </select></label>
   </div>
   <div class="note" id="aggNote" style="margin-top:6px"></div>
+</div>
+
+<div class="card loc-off" id="cLoc">
+  <h3>检测地区（实测落地）</h3>
+  <div class="note">和「检测本地可用」<b>互相独立</b>：可以只测可用、只测地区，也可以两个都测，互不影响、不会自动串联。这个测的是你<b>当前网络</b>下、清单里每个 IP 真正落到的机房（地区）——网页直连裸 IP 会被证书挡住读不到机房，所以本站给每个 IP 临时挂一个本站域名下的子域名去连，测完临时记录自动清理。源标注与实测不一致的行会标出来；识别出的条目可以「按实测/注册地导出」，名字、分组全按识别地区重排。第三方中转服务器实测多半读不到机房，这类会用聚合时查好的 IP 注册地补标（行里标「注册地」，与实测明确分开）；要是你测过的延迟与注册地明显对不上（比如注册在美国却只要几十毫秒），那行会被标出来、且不进导出。没识别出、也没补上注册地的条目可以点「重试未识别」再测一遍（主要是 CF 官方段的偶发失败）。</div>
+  <div class="ctrl">
+    <button class="btn primary" id="btnLoc">🌏 开始测地区</button>
+    <button class="btn" id="btnLocStop" style="display:none">停止</button>
+    <button class="btn" id="btnLocExport" disabled>按实测/注册地导出</button>
+    <button class="btn" id="btnLocRetry" style="display:none">重试未识别</button>
+    <span class="selinfo" id="locinfo">对当前清单（②生成的结果）逐个测实测落地；清单为空时先在②生成清单。</span>
+  </div>
+  <div id="loclist" style="margin-top:8px"></div>
 </div>
 
 <div class="card">
@@ -373,19 +389,20 @@ footer a{color:var(--acc2);text-decoration:none}
   <h3>使用说明与本站口径</h3>
   <div class="note" style="border:1px solid var(--acc2);border-radius:10px;padding:10px 12px;margin-bottom:10px">
     <b>四步上手。</b><br>
-    <b>第一步 · 选</b> — 在「①② 选 IP」里勾地区、定每地区数量，按需多选运营商、设延迟 / 速度门槛，点「生成清单」。<br>
+    <b>第一步 · 选</b> — 在「①② 选 IP」里勾源标注地区、定每地区数量，按需多选运营商、设延迟 / 速度门槛，点「生成清单」。<br>
     <b>第二步 · 验</b> — 对清单点「本地可用检测」或「本地测速」：这是在<b>你自己的网络</b>上现场测，通不通、多少毫秒以这个为准；本站数据是各源站在自家测试地测的，只作参考。<br>
     <b>第三步 · 用</b> — 直接复制清单粘进客户端；或在「③ 订阅」里存一份<b>快照</b>，生成你的专属链接，只含你测通的那批，不随聚合变动。<br>
     <b>第四步 · 长效</b> — 想长期自动更新：用「③ 订阅」的实时订阅链接（随本站每轮聚合刷新），或去「直链」拿现成分组文件；想用某家原味的，复制「直链」里各源原始直链，源站自己更新。<br>
     <b>每个类目干什么</b> — 今日推荐（默认首页）：源站测速 Top 20（前 20 名），现成可用；选 IP：生成与实测清单；订阅：快照与实时订阅；域名 / IPv6 / 大池：三个独立池子；直链：现成分组 + 各源原始链接；来源：每个源的聚合情况、更新节奏与抓取时间；说明：本页。
   </div>
   <div class="note">
-    <b>① 数据从哪来。</b>本站只聚合、不测速：服务器定时从 38 个公开优选源拉取清单（28 个 IP 源 + 10 个域名源，明细见「来源」类目），统一格式、去重后生成总池；域名另经 DNS 解析筛除已失效的。个别源某轮收录为 0 时会在「来源」里注明原因（源格式变化 / 源内容异常），不是本站漏抓。另有一类破例：少数源（如 CFYes / 麒麟）只按运营商实测、不标地区，这类条目收在「三网专区」（地区代号 SW），在选地区时可像地区一样勾选 — 它们只有运营商口径、没有地区，介意纯粹性的可以不勾。源站改格式（比如换成 Base64 编码订阅、分享链接、JSON / CSV 数据文件）时聚合会自动换兼容解析跟上并在来源备注里标明，BestCF 系源还有双主机互备，主地址挂了自动换备用域名。地区与速度是各源在其测试地的标注：带测试地的源（如 svip-s）是在其测试地网络实测的，离你越近参考价值越高；全国源是全国口径。数据全站同一份，不分访客。<br>
+    <b>① 数据从哪来。</b>本站只聚合、不测速：服务器定时从 38 个公开优选源拉取清单（28 个 IP 源 + 10 个域名源，明细见「来源」类目），统一格式、去重后生成总池；域名另经 DNS 解析筛除已失效的。个别源某轮收录为 0 时会在「来源」里注明原因（源格式变化 / 源内容异常），不是本站漏抓。另有一类破例：少数源（如 CFYes / 麒麟）只按运营商实测、不标地区，这类条目收在「三网专区」（地区代号 SW），在选地区时可像地区一样勾选 — 它们只有运营商口径、没有地区，介意纯粹性的可以不勾。源站改格式（比如换成 Base64 编码订阅、分享链接、JSON / CSV 数据文件）时聚合会自动换兼容解析跟上并在来源备注里标明，BestCF 系源还有双主机互备，主地址挂了自动换备用域名。地区与速度是各源在其测试地的标注：带测试地的源（如 svip-s）是在其测试地网络实测的，离你越近参考价值越高；全国源是全国口径。数据全站同一份，不分访客。<b>再强调一遍：源标注地区 ≠ 你用时的落地。</b>Cloudflare 的 IP 是全球任播，同一个 IP 在哪落地看你的线路，国内访问多半落地香港/日本/新加坡——标着「美国」的 IP，你用时落到香港是常事，不是本站标错，是任播本来就这样。想知道自己的真实落地怎么测、为什么不能直连裸 IP 测，看⑦。<br>
     <b>② 多久更新、总池为什么会变。</b>默认每 2 小时重新聚合一轮（部署者可改这个频率）：每轮把所有源重新抓一遍、从零重建总池，所以总数是活数 — 源增它增、源减它减，同一 IP:端口 只算一次（同 IP 不同端口算不同条目）；某个源某轮抓取失败时，先沿用它上一轮的数据顶着并在「来源」里如实标注，连续多轮（6 轮）都失败才会停用它的数据。页面顶部「更新于」就是最近一轮的时间。<br>
-    <b>③ 本地检测是你自己的数据。</b>「检测本地可用 / 本地测速」在你的浏览器里向每个 IP 发起 HTTPS 请求（超时统一 5 秒）：收到响应 = 确认可达并计耗时；连接被拒、超时、或证书与 IP 不匹配都会记为「未确认」——浏览器里没法区分这几种情况，未确认不等于不可用（有些 IP 证书对不上但配上域名照样能用）。确认可达也不等于节点可用或速度达标；开着代理测的是经代理的连通性，想测直连先关代理。清单测速为双测取低值。测速结果只存在你浏览器里，所以生成数比检测数少时，页面会标注被运营商/门槛滤掉的条数，对得上账。<br>
+    <b>③ 本地检测是你自己的数据。</b>「检测本地可用 / 本地测速」在你的浏览器里向每个 IP 发起 HTTPS 请求（超时统一 5 秒）：结果分四类——收到响应＝真连通；握手到一半被断开（多半是证书与 IP 不匹配）＝握手可达，说明服务器摸得到、耗时约等于网络往返，配上域名照样能用的 IP 大多在这一类；快得不正常地失败（30 毫秒内）＝异常，多半是被重置/拦截，不算可用、也不会被当成「最快」；等到超时＝摸不到。真连通＋握手可达算「可用」。可用也不等于节点能用或速度达标；开着代理测的是经代理的连通性，想测直连先关代理。清单测速为双测取低值。测速结果只存在你浏览器里，所以生成数比检测数少时，页面会标注被运营商/门槛滤掉的条数，对得上账。<br>
     <b>④ 两种订阅怎么选。</b>不测速、想让客户端自己定时换新 IP → 用③的实时订阅链接，内容随每轮聚合自动更新；测了速、只想用自己测通的那批 → 用③里的快照订阅，把当前清单定格存成专属链接，不随聚合变化，重新测速后再存一次即可。<br>
-    <b>⑤ 条数为什么比别家少。</b>本站只收各源实测后发布的成品清单，不自己扫网段：无地区标注的剔除、同一 IP:端口 只算一次、每轮重建不攒失效库存 — 所以每地区是几十到几百条的实测口径。别家「每地区几千条」多是扫描官方段的未实测地址或未去重的堆叠；想要量，用⑥大池采样（官方段采样 + 本地检测自己筛）。<br>
-    <b>⑥ 其他口径。</b>四网（移动/电信/联通/广电）里，<b>广电全网暂无公开实测源</b> — 选广电时给的是通用条目，广电用户请务必用本地检测在自家网络实测筛选。「送复检站」会复制当前清单并打开你选的 IP 监测站（推荐 IPCheck.ing，也可自填任意监测站地址，选择保存在本地浏览器）。优选域名由第三方维护，晚高峰可能变卡，作回退入口更合适。优选 IP 时效性强，失效条目以下一次聚合为准。
+    <b>⑤ 条数为什么比别家少。</b>本站只收各源实测后发布的成品清单，不自己扫网段：无地区标注的剔除、同一 IP:端口 只算一次、每轮重建不攒失效库存 — 所以每个源标注地区是几十到几百条的实测口径。别家「每地区几千条」多是扫描官方段的未实测地址或未去重的堆叠；想要量，用⑥大池采样（官方段采样 + 本地检测自己筛）。<br>
+    <b>⑥ 其他口径。</b>四网（移动/电信/联通/广电）里，<b>广电全网暂无公开实测源</b> — 选广电时给的是通用条目，广电用户请务必用本地检测在自家网络实测筛选。「送复检站」会复制当前清单并打开你选的 IP 监测站（推荐 IPCheck.ing，也可自填任意监测站地址，选择保存在本地浏览器）。优选域名由第三方维护，晚高峰可能变卡，作回退入口更合适。优选 IP 时效性强，失效条目以下一次聚合为准。<br>
+    <b>⑦ 真实落地怎么测、为什么不能直连裸 IP 测。</b>本站给的地区是源标注，不是你用时的落地。网页直连裸 IP 测不出真实落地：浏览器跟裸 IP 握手时，IP 拿不出对得上号的证书，连接直接被断开——本站试过直连读机房信息，一池 730 条只测出 1 条，等于测不出，所以直连这个测法撤掉了，不拿测不出的东西糊弄人。现在的「检测地区」绕了个弯：给每个 IP 临时配一个本站域名下的子域名，证书对得上了，就能读出它在你当前网络下真正落到的机房，测完临时记录自动删。它在③订阅页签，部署时配好令牌才出现；和「检测本地可用」是两套独立功能，只测可用、只测地区、两个都测，都行。没配令牌的部署没有这张卡，那就粗判看延迟：国内测出 120ms 左右的「美国」基本是假美国（真美国西海岸一般 150ms 起步），多半落在亚洲；或者用 CloudflareSpeedTest 这类工具在本地批量测，它也能读出每个 IP 的真实机房。
   </div>
 </div>
 
@@ -428,6 +445,7 @@ function syncCarrierChips(){
 }
 let RESULT = [];
 const lat = {}, lat6 = {};
+const latKind = {}; // addr -> ok|hs|rst|dead（probe 写入，显示与统计用）
 let availByRegion = null;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -530,7 +548,7 @@ function bigRemark(seq, localMs, region){
 function fmtPreviewUpdate(){
   const jp = { addr: '13.196.179.169:443', region: 'JP', tag: '优选高速 82.13ms 16.72Mbps', carrier: '', srcMs: 82.13, srcMbps: 16.72 };
   const us = { addr: '104.17.53.195:443', region: 'US', tag: '反代入口', carrier: '', srcMs: null, srcMbps: null };
-  $('fmtPreview').textContent = `预览：${jp.addr}#${renderRemark(FMT, jp, 1)} ｜ ${jp.addr}#${renderRemark(FMT, jp, 2)} ｜ ${us.addr}#${renderRemark(FMT, us, 1)}（序号按地区各自从 1 数）`;
+  $('fmtPreview').textContent = `预览：${jp.addr}#${renderRemark(FMT, jp, 1)} ｜ ${jp.addr}#${renderRemark(FMT, jp, 2)} ｜ ${us.addr}#${renderRemark(FMT, us, 1)}（序号按源标注地区各自从 1 数）`;
 }
 function syncFmtChips(){
   document.querySelectorAll('#fmtVars [data-tok]').forEach(b =>
@@ -655,9 +673,9 @@ function updateSelInfo(){
       ? sel.filter(l => { const p = parseLine(l); return p.carrier && !carrierSet.has(p.carrier); }).length : 0;
     if(cDrop) extra += `（运营商筛选滤掉 ${cDrop} 条）`;
     const rest = sel.length - cDrop - final;
-    if(rest > 0) extra += `（另 ${rest} 条被${$('onlyAvail').checked ? '「只生成测通的」' : '每地区数量/门槛/端口'}滤掉）`;
+    if(rest > 0) extra += `（另 ${rest} 条被${$('onlyAvail').checked ? '「只生成测通的」' : '每源标注地区数量/门槛/端口'}滤掉）`;
   }
-  $('selinfo').innerHTML = `已选 <b>${selected.size}</b> 个地区 · 将生成 <b>${final}</b> 条${extra}`;
+  $('selinfo').innerHTML = `已选 <b>${selected.size}</b> 个源标注地区 · 将生成 <b>${final}</b> 条${extra}`;
   refreshSub(); saveCfg();
 }
 function regionStatText(lines){
@@ -682,6 +700,8 @@ function renderTable(){
     const v = lat[p.addr];
     let latHtml = '<span class="lat" style="color:var(--dim)">未测</span>';
     if(v === -1) latHtml = '<span class="lat bad">超时</span>';
+    else if(v === -2) latHtml = '<span class="lat bad">异常</span>';
+    else if(v !== undefined && latKind[p.addr] === 'hs') latHtml = `<span class="lat ${v<200?'mid':v<600?'mid':'bad'}" title="握手计时：浏览器建不起真连接，这是握手摸到服务器的耗时，只作相对比较">握手 ${v} ms</span>`;
     else if(v !== undefined) latHtml = `<span class="lat ${v<200?'good':v<600?'mid':'bad'}">${v} ms</span>`;
     return `<tr><td style="color:var(--dim)">${i+1}</td>` +
       `<td class="addr" data-line="${l.replace(/"/g,'&quot;')}" title="点击复制整行">${p.addr}</td>` +
@@ -703,30 +723,46 @@ function abortAllProbes(){
   activeCtors.clear();
 }
 let testing = false, domTesting = false, v6Scanning = false;
+const RST_MS = 30; // 失败快于此毫秒不算「快」：多半是被重置/拦截
+function classifyFail(dt, timedOut, aborted){
+  if(timedOut || aborted) return { v: -1, kind: 'dead' };
+  if(dt < RST_MS) return { v: -2, kind: 'rst' };
+  return { v: dt, kind: 'hs' };
+}
 function probe(addr, timeoutMs){
-  // 探测口径（已修正）：fetch(no-cors) 收到任何 HTTP 响应才算「确认可达」并
-  // 计耗时；连接被拒 / DNS 失败 / 超时 / TLS 证书不匹配都会 reject，记 -1
-  // 「未确认」。旧实现用图片探测且 onerror 也算通——被拒连接的报错最快，
-  // 死 IP 反而被排到最前。浏览器里无法区分「真死」与「证书对不上但可用」，
-  // 所以 -1 只表示未确认、不表示不可用，文案与导出都按这个口径。
+  // 探测口径（2026-11-28 再修）：浏览器连裸 IP 时 TLS 证书对不上号，真连接
+  // 建不起来——上一版口径「收到响应才算通」导致整池几乎全灭（实测 730 条
+  // 只认 1 条）。现按结果分四类：①fetch 真拿到响应＝真可达（ok）；②握手
+  // 进行到一半被断（多半证书不符）＝服务器确实摸到了、耗时≈网络往返，记
+  // 「握手可达」（hs，配上域名能用的 IP 大多在这一类）；③快得不正常地失
+  // 败（<30ms）＝多半被重置/拦截，记「异常」（rst，-2）——绝不当最快排前
+  // 面（那是 v1.17 前图片探测的老毛病）；④等到超时/被停止＝摸不到
+  // （dead，-1）。返回值约定不变：>=0 可用并计毫秒，-1 摸不到，-2 异常；
+  // 分类另存 latKind[addr]。hs 的耗时是握手计时、不是真连接速度，只作
+  // 相对比较。
   return new Promise(res => {
     let hostport;
     if(addr.startsWith('[')) hostport = addr;
     else { const [h, p] = addr.split(':'); hostport = `${h}:${p || 443}`; }
     const ctl = regCtl(new AbortController());
-    const timer = setTimeout(() => ctl.abort(), timeoutMs || 5000);
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctl.abort(); }, timeoutMs || 5000);
     const t0 = performance.now();
     fetch(`https://${hostport}/favicon.ico?_=${Date.now()}`, {
       mode: 'no-cors', cache: 'no-store', signal: ctl.signal,
-    }).then(() => { clearTimeout(timer); unregCtl(ctl); res(Math.round(performance.now() - t0)); })
-      .catch(() => { clearTimeout(timer); unregCtl(ctl); res(-1); });
+    }).then(() => { clearTimeout(timer); unregCtl(ctl); latKind[addr] = 'ok'; res(Math.round(performance.now() - t0)); })
+      .catch(() => { clearTimeout(timer); unregCtl(ctl);
+        const c = classifyFail(Math.round(performance.now() - t0), timedOut, ctl.signal.aborted && !timedOut);
+        latKind[addr] = c.kind; res(c.v); });
   });
 }
 async function probe2(addr, timeoutMs){
   const a = await probe(addr, timeoutMs);
-  if(a < 0) return -1;
+  if(a < 0) return a;
+  const ka = latKind[addr];
   const b = await probe(addr, timeoutMs);
-  return b < 0 ? a : Math.min(a, b);
+  if(b < 0 || a <= b){ latKind[addr] = ka; return a; }
+  return b;
 }
 let scanning = false;
 async function scanPool(scope){
@@ -736,14 +772,16 @@ async function scanPool(scope){
   $('btnStop').style.display = '';
   $('btnSelAvail').disabled = true;
   const lines = scope === 'sel' ? POOL.filter(l => selected.has(parseLine(l).region)) : POOL.slice();
-  if(!lines.length){ scanning = false; $('btnScan').disabled = false; $('btnScanSel').disabled = false; $('btnStop').style.display = 'none'; toast('先选地区再检测'); return; }
-  let idx = 0, doneN = 0, okN = 0;
+  if(!lines.length){ scanning = false; $('btnScan').disabled = false; $('btnScanSel').disabled = false; $('btnStop').style.display = 'none'; toast('先选源标注地区再检测'); return; }
+  let idx = 0, doneN = 0, okN = 0, okTrue = 0, hsN = 0, rstN = 0, deadN = 0;
   const total = lines.length;
   async function worker(){
     while(idx < total && scanning){
       const p = parseLine(lines[idx++]);
       lat[p.addr] = await probe(p.addr, 5000);
       if(lat[p.addr] >= 0) okN++;
+      const kd = latKind[p.addr];
+      if(kd === 'ok') okTrue++; else if(kd === 'hs') hsN++; else if(kd === 'rst') rstN++; else deadN++;
       doneN++;
       if(doneN % 25 === 0 || doneN === total){
         $('scaninfo').innerHTML = `检测中… 已测 <b>${doneN}</b>/${total} · 可用 <b>${okN}</b>`;
@@ -755,8 +793,8 @@ async function scanPool(scope){
   refreshAvail();
   const nRegionsOk = Object.values(availByRegion || {}).filter(v => v > 0).length;
   $('scaninfo').innerHTML = (scanning
-    ? `检测完成：<b>${okN}</b>/${total} 确认可达，分布在 <b>${nRegionsOk}</b> 个地区（地区钮上的 ✓ 是该地区确认数；未确认≠不可用，可能是证书/网络受限没测出来）`
-    : `已停止：测了 ${doneN}/${total}，确认可达 <b>${okN}</b> 个`) + `<br>${regionStatText(lines)}`;
+    ? `检测完成：可用 <b>${okN}</b>/${total}（真连通 ${okTrue} · 握手可达 ${hsN}），分布在 <b>${nRegionsOk}</b> 个源标注地区（地区钮上的 ✓ 是可用数）｜异常（太快，多半被重置）${rstN} · 超时 ${deadN}`
+    : `已停止：测了 ${doneN}/${total}，可用 <b>${okN}</b> 个`) + `<br>${regionStatText(lines)}`;
   $('btnSelAvail').disabled = nRegionsOk === 0;
   scanning = false;
   $('btnScan').disabled = false; $('btnScanSel').disabled = false;
@@ -943,7 +981,7 @@ function renderV6(){
   $('v6box').textContent = POOL6.map(l => {
     const key = (l.match(/^\[[^\]]+\]:\d+/) || [l])[0];
     const v = lat6[key];
-    const mark = v === undefined ? '' : (v >= 0 ? ` ✓ ${v}ms` : ' ✗超时');
+    const mark = v === undefined ? '' : (v >= 0 ? ` ✓ ${v}ms` : (v === -2 ? ' ✗异常' : ' ✗超时'));
     return l + mark;
   }).join('\n');
 }
@@ -983,7 +1021,7 @@ async function scanV6(){
     LS.set('cfipV6Res', JSON.stringify({
       gen: META ? META.generated_at : '', lat6}));
   }catch(e){}
-  $('v6info').innerHTML = `${v6Scanning ? '检测完成' : '已停止'}：<b>${okN}</b>/${total} 确认可达（${total ? Math.round(okN / total * 100) : 0}%；未确认≠不可用）` +
+  $('v6info').innerHTML = `${v6Scanning ? '检测完成' : '已停止'}：可用 <b>${okN}</b>/${total}（${total ? Math.round(okN / total * 100) : 0}%；真连通+握手可达，异常/超时不算）` +
     (carStr ? `<br>分运营商可用：${carStr}` : '');
   $('btnV6CopyOk').disabled = okN === 0;
   v6Scanning = false;
@@ -1054,7 +1092,8 @@ $('btnSnap').addEventListener('click', async () => {
   const scope = $('snapScope').value;
   const lines = snapScopeLines();
   if(!lines.length){
-    toast(scope === 'all' ? '清单是空的' : '还没有测通的数据：先在①点「检测本地可用」或在②点「本地测速」，再存快照');
+    toast(scope === 'all' ? '清单是空的'
+      : '还没有测通的数据：先在①点「检测本地可用」或在②点「本地测速」，再存快照');
     return;
   }
   $('btnSnap').disabled = true;
@@ -1157,7 +1196,7 @@ $('btnSelAvail').addEventListener('click', () => {
   selected.clear();
   Object.entries(availByRegion).forEach(([cc, n]) => { if(n > 0) selected.add(cc); });
   renderChips(); updateSelInfo();
-  toast(`已选 ${selected.size} 个有可用的地区，点「生成清单」出清单`);
+  toast(`已选 ${selected.size} 个有可用的源标注地区，点「生成清单」出清单`);
 });
 $('btnCopy').addEventListener('click', () =>
   copyText(formatLines(RESULT).join('\n'), `已复制清单 ${RESULT.length} 条`));
@@ -1171,7 +1210,7 @@ $('btnTest').addEventListener('click', runTest);
 $('btnSort').addEventListener('click', () => {
   RESULT.sort((a, b) => {
     const va = lat[parseLine(a).addr], vb = lat[parseLine(b).addr];
-    return (va === undefined || va === -1 ? 1e9 : va) - (vb === undefined || vb === -1 ? 1e9 : vb);
+    return (va === undefined || va < 0 ? 1e9 : va) - (vb === undefined || vb < 0 ? 1e9 : vb);
   });
   if($('ordMode')) $('ordMode').value = 'asis';
   renderTable(); toast('已按本地延迟排序');
@@ -1217,6 +1256,7 @@ function sampleBig(){
 function bigLatHtml(i){
   const v = BIGRES[i];
   if(v === undefined) return '<span class="blat">未测</span>';
+  if(v === -2) return '<span class="blat bad">异常</span>';
   if(v < 0) return '<span class="blat bad">超时</span>';
   return `<span class="blat ok">${v} ms</span>`;
 }
@@ -1276,14 +1316,14 @@ async function scanBig(){
       BIGRES[i] = await probe(`${BIG[i].ip}:${BIG[i].port}`, 5000);
       if(BIGRES[i] >= 0) okN++;
       doneN++;
-      if(doneN % 50 === 0 || doneN === total){ $('bigInfo').textContent = `检测中… ${doneN}/${total} · 确认可达 ${okN}`; renderBig(); }
+      if(doneN % 50 === 0 || doneN === total){ $('bigInfo').textContent = `检测中… ${doneN}/${total} · 可用 ${okN}`; renderBig(); }
     }
   }
   await Promise.all(Array.from({ length: 16 }, worker));
   renderBig();
   $('bigInfo').textContent = bigScanning
-    ? `检测完成：${okN}/${total} 确认可达（浏览器探测，未确认≠不可用，仅作相对比较）`
-    : `已停止：测了 ${doneN}/${total}，确认可达 ${okN}`;
+    ? `检测完成：${okN}/${total} 可用（真连通+握手可达，浏览器探测，仅作相对比较）`
+    : `已停止：测了 ${doneN}/${total}，可用 ${okN}`;
   $('btnBigCopyOk').disabled = okN === 0;
   $('btnBigCopyOk').textContent = `只复制可用的（${okN}）`;
   bigScanning = false;
@@ -1352,7 +1392,7 @@ $('btnBigSnap').addEventListener('click', async () => {
 $('btnBigSnapCopy').addEventListener('click', () => copyText($('bigSnapUrl').value, '已复制快照订阅链接'));
 
 // ===== 卡片折叠（移动端默认收起次要卡片）=====
-const TABMAP = { gen: ['cGen', 'cList'], top: ['cTop'], sub: ['cSub'], dom: ['cDom'], v6: ['cV6'], big: ['cBig'], links: ['cLinks', 'cRaw'], src: ['cSrc'], note: ['cNote'] };
+const TABMAP = { gen: ['cGen', 'cList'], top: ['cTop'], sub: ['cSub', 'cLoc'], dom: ['cDom'], v6: ['cV6'], big: ['cBig'], links: ['cLinks', 'cRaw'], src: ['cSrc'], note: ['cNote'] };
 function activateTab(name){
   if(!TABMAP[name]) name = 'top';
   const show = new Set(TABMAP[name]);
@@ -1371,7 +1411,7 @@ function initTabs(){
   activateTab(start);
 }
 function initCards(){
-  const ids = ['cTop', 'cGen', 'cList', 'cSub', 'cDom', 'cV6', 'cBig', 'cLinks', 'cRaw', 'cSrc', 'cNote'];
+  const ids = ['cTop', 'cGen', 'cList', 'cSub', 'cLoc', 'cDom', 'cV6', 'cBig', 'cLinks', 'cRaw', 'cSrc', 'cNote'];
   document.querySelectorAll('.card').forEach((card, i) => {
     if(ids[i]) card.id = ids[i];
     const h3 = card.querySelector('h3');
@@ -1561,7 +1601,7 @@ $('btnTopLink').addEventListener('click', () =>
   const FB_N = Array.isArray(META.fallback_sources) ? META.fallback_sources.length : 0;
   $('stats').innerHTML =
     `<span class="chip">全球池 <b>${META.total || 0}</b> 条</span>` +
-    `<span class="chip">覆盖 <b>${Object.keys(META.regions || {}).filter(k => k !== 'SW').length}</b> 个地区</span>` +
+    `<span class="chip">覆盖 <b>${Object.keys(META.regions || {}).filter(k => k !== 'SW').length}</b> 个源标注地区</span>` +
     `<span class="chip">IPv6 <b>${META.v6_total || 0}</b> 条</span>` +
     `<span class="chip">优选域名 <b id="statDomN">${META.domains_total || 0}</b> 个</span>` +
     `<span class="chip">数据源 <b>${SRCS.filter(s=>s.ok).length}/${SRCS.length}</b> 正常</span>` +
@@ -1674,7 +1714,7 @@ $('btnTopLink').addEventListener('click', () =>
   }).catch(() => {});
   fetch('data/history.json' + T).then(r => { if(!r.ok) throw new Error('http ' + r.status); return r.json(); }).then(h => {
     $('history').innerHTML = h.slice(0, 6).map(x =>
-      `<div>${x.at} · IPv4 ${x.total} 条 · IPv6 ${x.v6} 条 · ${x.regions} 个地区 · 域名 ${x.domains} 个</div>`).join('');
+      `<div>${x.at} · IPv4 ${x.total} 条 · IPv6 ${x.v6} 条 · ${x.regions} 个源标注地区 · 域名 ${x.domains} 个</div>`).join('');
   }).catch(() => {});
   const savedFreq = LS.get('cfipAggFreq');
   if(savedFreq) $('aggFreq').value = savedFreq;
@@ -1685,6 +1725,319 @@ $('btnTopLink').addEventListener('click', () =>
       $('recheckCustom').value = rc.custom || '';
       $('recheckCustom').style.display = $('recheckSel').value === 'custom' ? '' : 'none'; }
   }catch(e){}
+  // ===== 检测地区（实测落地）：与「检测本地可用」完全独立的一套 =====
+  // 不被 scanPool / runTest 调用，也不调用它们——用户可以只测可用、只测
+  // 地区、或两个都测。原理：网页直连裸 IP 读不到机房（证书对不上），所以
+  // 让本站 /probe 接口在部署者的域名下给每个 IP 临时建一条子域名记录，
+  // 浏览器连 https://<子域名>/cdn-cgi/trace 读 colo（机房），再映射成地区；
+  // 每批测完（完成/停止/出错都走）立刻调 DELETE 删这一批，不攒到最后。未配置 /probe
+  // 的部署（没设那三个环境变量）整张卡不显示，其他功能零影响。
+  const COLO_CC = {HKG:'HK', NRT:'JP', HND:'JP', KIX:'JP', SIN:'SG', ICN:'KR', FRA:'DE', TPE:'TW',
+    LAX:'US', SJC:'US', SEA:'US', ORD:'US', DFW:'US', IAD:'US', EWR:'US', JFK:'US', BOS:'US',
+    MIA:'US', ATL:'US', DEN:'US', PDX:'US', PHX:'US', LAS:'US', SLC:'US', MSP:'US', DTW:'US',
+    CLT:'US', BNA:'US', IAH:'US', AUS:'US', SAN:'US', CDG:'FR', LHR:'GB', AMS:'NL', SYD:'AU',
+    YYZ:'CA', GRU:'BR', JNB:'ZA', BOM:'IN', DEL:'IN'};
+  const LOC_CN_EXTRA = {HND:'羽田', SLC:'盐湖城', MSP:'明尼阿波利斯', DTW:'底特律', CLT:'夏洛特',
+    BNA:'纳什维尔', IAH:'休斯顿', AUS:'奥斯汀', SAN:'圣地亚哥', BOS:'波士顿', PHX:'凤凰城', LAS:'拉斯维加斯'};
+  const locCity = c => COLO_CN[c] || LOC_CN_EXTRA[c] || '';
+  // CF 官方任播段：摘要拆分「未识别」时用它区分——官方段这次没读到多半
+  // 是偶发（可重试），第三方中转服务器则是结构性读不到（属正常）。
+  const CF_RANGES = [[0x68100000,12],[0xAC400000,13],[0xA29F0000,16],[0xC6298000,17],
+    [0xADF53000,20],[0x6715F400,22],[0x6716C800,22],[0x671F0400,22],[0x8D654000,18],
+    [0x6CA2C000,18],[0xBE5DF000,20],[0xBC726000,20],[0xC5EAF000,22]];
+  function ipInCfRanges(ip){
+    const p = ip.split('.').map(Number);
+    if(p.length !== 4 || p.some(isNaN)) return false;
+    const n = ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
+    return CF_RANGES.some(([base, bits]) => (n >>> (32 - bits)) === (base >>> (32 - bits)));
+  }
+  // 注册地补标（v1.32）：实测读不到机房的第三方条目，用聚合时生成的
+  // data/geo.json（非 CF 段 IP 的所在地国家 + 运营商，聚合脚本每轮更新）
+  // 补标。物理服务器位置固定，注册地就是它的实际所在地（转发出去也基本
+  // 落到附近机房）；与实测是两回事：行里带「注册地」标签、摘要分开计数、
+  // 导出时在提示里报明含多少条补标，绝不冒充实测。
+  let geoMap = null;   // ip -> [cc, org]（第一次测地区时懒加载，失败当空表）
+  let geoLoc = {};     // ip -> {cc, org, suspect}（本轮补标结果）
+  async function loadGeo(){
+    if(geoMap) return geoMap;
+    try{ const r = await fetch('data/geo.json'); geoMap = r.ok ? await r.json() : {}; }
+    catch(e){ geoMap = {}; }
+    if(!geoMap || typeof geoMap !== 'object' || Array.isArray(geoMap)) geoMap = {};
+    return geoMap;
+  }
+  // 延迟交叉校验的粗略带（只抓离谱的，宁宽勿严）：[下限, 上限]，null
+  // 表示不限。口径是国内访客测出的延迟：注册 US 却 <80ms 不可能（跨
+  // 太平洋往返都不止）、JP/KR 却 >250ms、HK/TW 却 >150ms、SG 却 <35ms
+  // （比到香港还快）或 >250ms，都说明这个注册地多半靠不住。不在表里
+  // 的国家不校验；没测过可用、没有延迟值的也不校验（不冤枉）。
+  const GEO_LAT_BAND = { US: [80, null], JP: [null, 250], KR: [null, 250],
+                         HK: [null, 150], TW: [null, 150], SG: [35, 250] };
+  function geoLatSuspect(cc, ms){
+    if(ms === null || ms === undefined || ms < 0) return false;
+    const b = GEO_LAT_BAND[cc];
+    if(!b) return false;
+    return (b[0] !== null && ms < b[0]) || (b[1] !== null && ms > b[1]);
+  }
+  function locLatencyMs(ip){
+    // 本次会话「检测本地可用」留下的延迟（lat[addr]，>=0 才算数）；
+    // 同一 IP 多个端口取最小的一个。没有就返回 null（不参与校验）。
+    const ent = locByIp.get(ip);
+    const ports = ent && ent.ports && ent.ports.length ? ent.ports : ['443'];
+    let best = null;
+    for(const port of ports){
+      const v = lat[ip + ':' + port];
+      if(typeof v === 'number' && v >= 0 && (best === null || v < best)) best = v;
+    }
+    return best;
+  }
+  function locApplyGeo(){
+    geoLoc = {};
+    if(!geoMap) return;
+    for(const t of locTested){
+      if(t.colo || t.notBuilt) continue;   // 实测读到的、没测成的不补标
+      const g = geoMap[t.ip];
+      if(!Array.isArray(g) || !g[0]) continue;
+      geoLoc[t.ip] = { cc: g[0], org: g[1] || '',
+                       suspect: geoLatSuspect(g[0], locLatencyMs(t.ip)) };
+    }
+  }
+  let realLoc = {};    // ip -> {colo, cc}（只存识别成功的）
+  let locTested = [];  // 本轮测过的 {ip, p, colo}，渲染结果列表用
+  let locByIp = new Map(); // ip -> {line, p}（重试未识别时复用）
+  let locRunning = false, locStop = false;
+  async function locFetchTrace(host, port){
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 6000);
+    try{
+      // 必须带条目自己的端口读（v1.31.2 补）：端口写在子域名后面，证书
+      // 校验看的是域名、与端口无关；老版不带端口一律走 443，清单里
+      // 8443/2053/9443 等非 443 条目永远读不到、必然未识别。
+      const r = await fetch(`https://${host}:${port}/cdn-cgi/trace`, { signal: ctl.signal, cache: 'no-store' });
+      if(!r.ok) return null;
+      const m = (await r.text()).match(/^colo=([A-Z]{3})$/m);
+      return m ? m[1] : null;
+    }catch(e){ return null; }
+    finally{ clearTimeout(timer); }
+  }
+  async function locTraceRetry(host, port){
+    // 一个地址（host:端口）最多读 3 次：临时域名刚建好时解析可能还没
+    // 传播到本地、或偶发失败，CF 段的失败多半值得重试；3 次都读不到
+    // 才算这个端口没读到。
+    let colo = await locFetchTrace(host, port);
+    for(const waitMs of [3000, 6000]){
+      if(colo || locStop) break;
+      await new Promise(r => setTimeout(r, waitMs));
+      colo = await locFetchTrace(host, port);
+    }
+    return colo;
+  }
+  async function locTraceForPorts(host, ports){
+    // DNS 记录只按 IP 建（与端口无关）；同一 IP 在清单里有多个端口时
+    // 共用这一条记录，逐个端口读，任一端口读到机房即算识别。
+    for(const port of ports){
+      const colo = await locTraceRetry(host, port);
+      if(colo || locStop) return colo;
+    }
+    return null;
+  }
+  function renderLocList(){
+    if(!locTested.length){ $('loclist').innerHTML = ''; return; }
+    const rows = locTested.map((t) => {
+      const { p, colo } = t;
+      let cell, mis = false;
+      if(t.notBuilt){ cell = '未建成（临时记录没建起来，没测成）'; }
+      else if(colo && COLO_CC[colo]){
+        const cc = COLO_CC[colo];
+        mis = cc !== p.region;
+        cell = `${esc(colo)} ${esc(locCity(colo))} · ${esc(NAMES[cc] || cc)}`;
+      } else if(colo){ cell = `${esc(colo)}（未归类）`; }
+      else if(geoLoc[t.ip]){
+        const g = geoLoc[t.ip];
+        cell = `<span class="tag">注册地</span> ${esc(NAMES[g.cc] || g.cc)}${g.org ? ' · ' + esc(g.org) : ''}` +
+          (g.suspect ? ' <span class="tag" style="color:var(--bad)">⚠️ 延迟与注册地明显不符</span>' : '');
+      }
+      else cell = '未识别';
+      return `<tr${mis ? ' style="background:rgba(255,80,80,.12)"' : ''}><td class="addr">${esc(p.addr)}</td>` +
+        `<td><span class="region">${esc(p.region)}</span> <span class="tag">${esc(NAMES[p.region] || '')}</span></td>` +
+        `<td>${cell}${mis ? ' <span class="tag" style="color:var(--bad)">⚠️ 与源标注不符</span>' : ''}</td></tr>`;
+    }).join('');
+    $('loclist').innerHTML = `<div class="tblwrap scrollbox" style="max-height:300px"><table><thead><tr><th>地址</th><th>源标注地区</th><th>实测地区</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function locStats(){
+    let ok = 0, mis = 0, geo = 0, geoSus = 0, unCf = 0, unTp = 0, unOther = 0, nb = 0;
+    for(const t of locTested){
+      if(t.notBuilt){ nb++; continue; }   // 临时记录没建成：没测成，不算未识别
+      if(t.colo && COLO_CC[t.colo]){ ok++; if(COLO_CC[t.colo] !== t.p.region) mis++; }
+      else if(t.colo) unOther++;          // 读到了机房，但不在地区对照表里
+      else if(geoLoc[t.ip]){ geo++; if(geoLoc[t.ip].suspect) geoSus++; }  // 注册地补标（geoSus 是其中延迟打脸的子集）
+      else if(ipInCfRanges(t.ip)) unCf++; // CF 官方段、这次没读到（可重试）
+      else unTp++;                        // 第三方且无注册地数据
+    }
+    return { ok, mis, geo, geoSus, unCf, unTp, unOther, nb, total: locTested.length };
+  }
+  function locUnknownText(st){
+    // 「未知」段的补充说明：CF 官方段没读到是偶发、可重试，单列；
+    // 读到了机房但不在对照表里的也单列；其余（第三方无注册地数据）
+    // 不逐项解释。已补标的第三方不在这里重复计数。
+    const parts = [];
+    if(st.unCf) parts.push(`CF 官方段 ${st.unCf} 条这次没读到，可重试`);
+    if(st.unOther) parts.push(`${st.unOther} 条读到了机房但不在地区对照表里`);
+    return parts.length ? `（未知里：${parts.join('、')}）` : '';
+  }
+  function locApplyResult(ip, p, colo, notBuilt){
+    if(colo && COLO_CC[colo]) realLoc[ip] = { colo, cc: COLO_CC[colo] };
+    const ent = { ip, p, colo: colo || null, notBuilt: !!notBuilt };
+    const ix = locTested.findIndex(t => t.ip === ip);
+    if(ix >= 0) locTested[ix] = ent; else locTested.push(ent); // 重试时合并回原行
+  }
+  async function locDeleteIds(ids){
+    if(!ids.length) return;
+    try{ await fetch('/probe', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ids }) }); }catch(e){}
+  }
+  // 一批一清（v1.31.2）：建这一批 → 等生效 → 读 trace → 立刻删这一批，
+  // 再下一批。任何时刻 zone 里存量 ≤ 一批多一点；老版把全部批次的记录
+  // 攒到最后才删，记录越攒越多、又撞上接口的删除上限，几百条时整轮
+  // 会崩成 502。中途出错也只欠当前批的清理，且 finally 里照样尝试删。
+  async function locRunBatch(batch, byIp, onDone){
+    const r = await fetch('/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ips: batch }) });
+    const data = await r.json().catch(() => null);
+    if(!r.ok || !data || !Array.isArray(data.hosts))
+      throw new Error((data && data.error) || ('建临时记录失败 HTTP ' + r.status));
+    const hostByIp = {}, ids = [];
+    data.hosts.forEach(h => { hostByIp[h.ip] = h.host; if(h.id) ids.push(h.id); });
+    // 接口如实回的 failed（追到最后仍没建成的 IP）：不进读 trace，直接
+    // 记「未建成」，和「未识别」分开（v1.31.3）。不在 hosts 里又不在
+    // failed 里的（旧版接口/异常响应）同样按未建成处理，不冒充未识别。
+    const failedSet = new Set(Array.isArray(data.failed) ? data.failed : []);
+    try{
+      await new Promise(res => setTimeout(res, 4000)); // 等临时域名解析生效
+      let idx = 0;
+      await Promise.all(Array.from({ length: 8 }, async () => {
+        while(idx < batch.length && !locStop){
+          const ip = batch[idx++];
+          const ent = byIp.get(ip);
+          const notBuilt = failedSet.has(ip) || !hostByIp[ip];
+          const colo = notBuilt ? null : await locTraceForPorts(hostByIp[ip], ent.ports && ent.ports.length ? ent.ports : ['443']);
+          locApplyResult(ip, ent.p, colo, notBuilt);
+          onDone();
+        }
+      }));
+    } finally {
+      await locDeleteIds(ids);
+    }
+  }
+  async function locRunFlow(ips, byIp, v6n, isRetry){
+    locRunning = true; locStop = false;
+    $('btnLoc').disabled = true; $('btnLocRetry').disabled = true;
+    $('btnLocStop').style.display = '';
+    let doneN = 0;
+    const renderProgress = () => {
+      const st = locStats();
+      $('locinfo').textContent = `${isRetry ? '重试未识别中' : '测地区中'}… 已测 ${doneN}/${ips.length} · 识别出 ${st.ok} · 与源标注不符 ${st.mis}` + (v6n ? `（另跳过 IPv6 ${v6n} 条）` : '');
+    };
+    renderProgress();
+    let errMsg = '';
+    try{
+      for(let i = 0; i < ips.length && !locStop; i += 80){
+        await locRunBatch(ips.slice(i, i + 80), byIp, () => {
+          doneN++;
+          if(doneN % 10 === 0){ renderLocList(); renderProgress(); }
+        });
+        renderLocList(); renderProgress();
+      }
+    }catch(e){ errMsg = e.message || String(e); }
+    finally{
+      locApplyGeo();   // 实测收尾后统一补标（重试轮同样走这里，合并回算）
+      locRunning = false;
+      $('btnLoc').disabled = false;
+      $('btnLocStop').style.display = 'none';
+      $('btnLocExport').disabled = Object.keys(realLoc).length === 0 &&
+        !Object.values(geoLoc).some(g => !g.suspect);
+      const st = locStats();
+      $('btnLocRetry').style.display = locTested.some(t => !t.colo && !geoLoc[t.ip]) ? '' : 'none';
+      $('btnLocRetry').disabled = false;
+      if(errMsg){
+        $('locinfo').textContent = `测地区出错：${errMsg}（已测出的结果保留，临时记录已按批清理）`;
+      } else if(locStop){
+        $('locinfo').textContent = `已停止：测了 ${doneN}/${ips.length} · 实测识别 ${st.ok} 条 · 注册地补标 ${st.geo} 条 · 与源标注不符 ${st.mis} 条` + (st.nb ? ` · 另有 ${st.nb} 条临时记录没建成、没测成` : '') + '（临时记录已按批清理）';
+      } else {
+        $('locinfo').textContent = `${isRetry ? '重试完成' : '测地区完成'}：共 ${st.total} 个 IP · 实测识别 ${st.ok} 条 · 注册地补标 ${st.geo} 条 · 未知 ${st.unCf + st.unTp + st.unOther} 条` +
+          (st.mis ? ` · 实测与源标注不符 ${st.mis} 条` : '') +
+          (st.geoSus ? ` · 其中 ${st.geoSus} 条延迟与注册地明显不符（已标出，未进导出）` : '') +
+          locUnknownText(st) +
+          (v6n ? ` · 跳过 IPv6 ${v6n} 条` : '') + (st.nb ? ` · 另有 ${st.nb} 条临时记录没建成、没测成` : '') + '（临时记录已按批清理）';
+      }
+      renderLocList();
+    }
+  }
+  async function runLocTest(){
+    if(locRunning) return;
+    if(!RESULT.length){ toast('先在②生成清单，再测地区'); return; }
+    // 按 IP 去重收集（同一 IP 不同端口只测一次）；IPv6 跳过并计数告知
+    const byIp = new Map();
+    let v6n = 0;
+    for(const l of RESULT){
+      const p = parseAny(l);
+      const ip = p.addr.replace(/:\d+$/, '');
+      if(p.addr.startsWith('[') || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)){ v6n++; continue; }
+      if(!byIp.has(ip)) byIp.set(ip, { line: l, p, ports: [] });
+      // 同一 IP 的每个端口都记下：记录共用一条，读 trace 时逐个端口读
+      const port = (p.addr.match(/:(\d+)$/) || [])[1];
+      const ent = byIp.get(ip);
+      if(port && !ent.ports.includes(port)) ent.ports.push(port);
+    }
+    const ips = [...byIp.keys()];
+    if(!ips.length){ toast('清单里没有 IPv4 地址，测地区只支持 IPv4'); return; }
+    locByIp = byIp;
+    realLoc = {}; locTested = []; geoLoc = {};
+    $('btnLocRetry').style.display = 'none';
+    renderLocList();
+    await loadGeo();   // 注册地数据懒加载（失败当空表，不挡实测流程）
+    await locRunFlow(ips, byIp, v6n, false);
+  }
+  async function runLocRetry(){
+    if(locRunning) return;
+    // 只对「没读到机房、也没补上注册地」的条目再走一遍同一套分批
+    // 流程，结果合并回原列表与摘要；「未建成」的条目 colo 同样为空，
+    // 一并重试（重新建记录再读）；已补标的条目实测再读也多半读不到，
+    // 不重复测；读到了机房但未归类的条目重读也是同一个机房，不重试。
+    const ips = locTested.filter(t => !t.colo && !geoLoc[t.ip]).map(t => t.ip);
+    if(!ips.length){ toast('没有未识别的条目'); return; }
+    await loadGeo();
+    await locRunFlow(ips, locByIp, 0, true);
+  }
+  function exportByRealLoc(){
+    // 导出集合 = 实测条目 + 注册地补标条目（延迟与注册地明显不符的
+    // 除外），逐条把行里的地区代码换成识别地区，再走现有
+    // groupByRegion + formatLines 出口：序号按地区各自从 1 编；名字里
+    // 带不带源标注方括号仍由导出格式的 {来源}/{标签} 决定（v1.28.1 口径）。
+    const out = [], seen = new Set();
+    let miss = 0, geoN = 0;
+    for(const l of RESULT){
+      const p = parseAny(l);
+      const ip = p.addr.replace(/:\d+$/, '');
+      const rl = realLoc[ip];
+      let cc = rl ? rl.cc : null, fromGeo = false;
+      if(!cc){
+        const g = geoLoc[ip];
+        if(g && !g.suspect){ cc = g.cc; fromGeo = true; }
+      }
+      if(!cc){ miss++; continue; }
+      const nl = l.replace(/#[A-Z]{2}\d*/, '#' + cc + '1');
+      if(seen.has(nl)) continue;
+      seen.add(nl); out.push(nl);
+      if(fromGeo) geoN++;
+    }
+    if(!out.length){ toast('还没有识别出的条目，先点「开始测地区」'); return; }
+    copyText(formatLines(groupByRegion(out)).join('\n'), `已按地区导出 ${out.length} 条（实测 ${out.length - geoN} 条 + 注册地补标 ${geoN} 条；没识别出的 ${miss} 条没进）`);
+  }
+  $('btnLoc').addEventListener('click', runLocTest);
+  $('btnLocRetry').addEventListener('click', runLocRetry);
+  $('btnLocStop').addEventListener('click', () => { locStop = true; });
+  $('btnLocExport').addEventListener('click', exportByRealLoc);
+  // 未配置的部署整张卡不显示：先问 /probe，确认配好了才亮出来
+  fetch('/probe').then(r => r.json()).then(d => { if(d && d.configured) $('cLoc').classList.remove('loc-off'); }).catch(() => {});
+
   renderChips(); updateSelInfo(); generate();
   initCards(); sampleBig();
   detectVisitor();
